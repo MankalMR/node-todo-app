@@ -201,4 +201,14 @@ describe('/todos/:id API GET suite', () => {
                 .end(done);
         });
     });
+
+    describe('when invoked with incorrect id', () => {
+        it('should return status code 404', (done) => {
+            getRequest = request(app)
+                    .get('/todos/123')
+                    .send()
+                    .end(done)
+                    .expect(404);
+        });
+    });
 });
