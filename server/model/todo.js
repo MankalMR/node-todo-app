@@ -1,4 +1,4 @@
-var {mongoose} = require('./mongoose');
+var {mongoose} = require('../db/mongoose');
 
 //Google for 'mongoose schema' to learn more about configuring model options
 //Todo model
