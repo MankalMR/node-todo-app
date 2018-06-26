@@ -9,14 +9,30 @@ var app = express();
 
 app.use(bodyParser.json());
 
+const errFn = (res) => {
+    return (err) => {
+        res.status(400).send(err);
+    };
+};
+
 app.post('/todos', (req, res) => {
     const newTodo = new Todo(req.body);
 
-    newTodo.save().then((doc) => {
-        res.send(doc);
-    }, (err) => {
-        res.status(400).send(err);
-    });
+    newTodo.save().then(
+        (doc) => {
+            res.send(doc);
+        },
+        errFn(res)
+    );
+});
+
+app.get('/todos', (req, res) => {
+    Todo.find().then(
+        (todos) => {
+            res.send({todos});
+        },
+        errFn(res)
+    );
 });
 
 app.listen(3000, () => {

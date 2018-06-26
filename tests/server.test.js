@@ -4,9 +4,10 @@ const request = require('supertest');
 const {app} = require('../server/server');
 const {Todo} = require('../server/model/todo');
 
+const text = 'Test todo app';
+
 describe('/todos API POST suite', () => {
-    let postRequest,
-        text = 'Test todo app';
+    let postRequest;
 
     beforeEach((done) => {
         Todo.remove({}).then(() => done());
@@ -93,6 +94,49 @@ describe('/todos API POST suite', () => {
                     })
                     .catch((e) => done(e));
                 });
+        });
+    });
+});
+
+describe('/todos API GET suite', () => {
+    let getRequest;
+
+    describe('when invoked with right params', () => {
+        beforeEach(() => {
+            postRequest = request(app)
+                .post('/todos')
+                .send({text});
+
+            getRequest = request(app)
+                .get('/todos')
+                .send();
+        });
+
+        afterEach((done) => {
+            Todo.remove({}).then(() => done());
+        });
+
+        it('should return the status code 200', (done) => {
+            getRequest.expect(200, done);
+        });
+
+        it('should successfully fetch the todos', (done) => {
+            getRequest
+                .expect((res) => {
+                    expect(res.body).toIncludeKey('todos');
+                })
+                .end(done);
+        });
+    });
+
+    describe('when invoked with incorrect params or incorrect API', () => {
+
+        it('should return the status code 404', (done) => {
+            getRequest = request(app)
+                .get('/todos_incorrect')
+                .send({text});
+
+            getRequest.expect(404, done);
         });
     });
 });
