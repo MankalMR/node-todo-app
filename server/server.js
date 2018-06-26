@@ -35,6 +35,15 @@ app.get('/todos', (req, res) => {
     );
 });
 
+app.get('/todos/:id', (req, res) => {
+    Todo.findById(req.params.id).then(
+        (todo) => {
+            res.send({todo});
+        },
+        errFn(res)
+    );
+});
+
 app.listen(3000, () => {
     console.log('Started on port 3000');
 });

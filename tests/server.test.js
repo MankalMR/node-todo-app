@@ -102,10 +102,11 @@ describe('/todos API GET suite', () => {
     let getRequest;
 
     describe('when invoked with right params', () => {
-        beforeEach(() => {
+        beforeEach((done) => {
             postRequest = request(app)
                 .post('/todos')
-                .send({text});
+                .send({text})
+                .end(done);
 
             getRequest = request(app)
                 .get('/todos')
@@ -127,6 +128,14 @@ describe('/todos API GET suite', () => {
                 })
                 .end(done);
         });
+
+        it('should fetch one todo', (done) => {
+            getRequest
+                .expect((res) => {
+                    expect(res.body.todos.length).toBe(1);
+                })
+                .end(done);
+        });
     });
 
     describe('when invoked with incorrect params or incorrect API', () => {
@@ -137,6 +146,59 @@ describe('/todos API GET suite', () => {
                 .send({text});
 
             getRequest.expect(404, done);
+        });
+    });
+});
+
+describe('/todos/:id API GET suite', () => {
+    let getRequest, id;
+
+    beforeEach((done) => {
+        Todo.remove({}).then(() => done());
+    });
+
+    beforeEach((done) => {
+        postRequest = request(app)
+                .post('/todos')
+                .send({text})
+                .end((err, res) => {
+                    if (err) {
+                        return done(err);
+                    }
+
+                    Todo.findOne({text}).then((todo) => {
+                        id = todo._id;
+                        done();
+                    })
+                    .catch((e) => done(e));
+                });
+    });
+
+    describe('when invoked with right params', () => {
+        beforeEach(() => {
+            getRequest = request(app)
+                .get('/todos/' + id)
+                .send();
+        });
+
+        it('should return the status code 200', (done) => {
+            getRequest.expect(200, done);
+        });
+
+        it('should successfully fetch the todo by id', (done) => {
+            getRequest
+                .expect((res) => {
+                    expect(res.body).toIncludeKey('todo');
+                })
+                .end(done);
+        });
+
+        it('should successfully fetch the right todo text', (done) => {
+            getRequest
+                .expect((res) => {
+                    expect(res.body.todo.text).toBe(text);
+                })
+                .end(done);
         });
     });
 });
