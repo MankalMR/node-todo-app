@@ -153,7 +153,7 @@ describe('/todos API GET suite', () => {
 describe('/todos/:id API GET suite', () => {
     let getRequest, id;
 
-    beforeEach((done) => {
+    afterEach((done) => {
         Todo.remove({}).then(() => done());
     });
 
