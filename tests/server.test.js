@@ -1,10 +1,21 @@
 const expect = require('expect');
 const request = require('supertest');
+const {ObjectID} = require('mongodb');
 
 const {app} = require('../server/server');
 const {Todo} = require('../server/model/todo');
 
 const text = 'Test todo app';
+const docs = [
+            {
+                "_id": new ObjectID(),
+                "text": "my todo 1"
+            },
+            {
+                "_id": new ObjectID(),
+                "text": "my todo 2"
+            }
+        ];
 
 describe('/todos API POST suite', () => {
     let postRequest;
@@ -99,22 +110,30 @@ describe('/todos API POST suite', () => {
 });
 
 describe('/todos API GET suite', () => {
-    let getRequest;
+    let getRequest,
+        todoTotal = 2;
+
+    beforeEach((done) => {
+        Todo.remove({}).then(() => done());
+    });
+
+    beforeEach((done) => {
+        Todo.insertMany(docs, done);
+    });
+
+    beforeEach((done) => {
+        Todo.count({}, (err, count) => {
+            todoTotal = count;
+            done();
+        });
+    });
 
     describe('when invoked with right params', () => {
-        beforeEach((done) => {
-            postRequest = request(app)
-                .post('/todos')
-                .send({text})
-                .end(done);
 
+        beforeEach(() => {
             getRequest = request(app)
                 .get('/todos')
                 .send();
-        });
-
-        afterEach((done) => {
-            Todo.remove({}).then(() => done());
         });
 
         it('should return the status code 200', (done) => {
@@ -129,10 +148,10 @@ describe('/todos API GET suite', () => {
                 .end(done);
         });
 
-        it('should fetch one todo', (done) => {
+        it(`should fetch ${todoTotal} todo`, (done) => {
             getRequest
                 .expect((res) => {
-                    expect(res.body.todos.length).toBe(1);
+                    expect(res.body.todos.length).toBe(todoTotal);
                 })
                 .end(done);
         });
@@ -143,7 +162,7 @@ describe('/todos API GET suite', () => {
         it('should return the status code 404', (done) => {
             getRequest = request(app)
                 .get('/todos_incorrect')
-                .send({text});
+                .send();
 
             getRequest.expect(404, done);
         });
@@ -151,33 +170,20 @@ describe('/todos API GET suite', () => {
 });
 
 describe('/todos/:id API GET suite', () => {
-    let getRequest, id;
+    let getRequest;
 
-    afterEach((done) => {
+    beforeEach((done) => {
         Todo.remove({}).then(() => done());
     });
 
     beforeEach((done) => {
-        postRequest = request(app)
-                .post('/todos')
-                .send({text})
-                .end((err, res) => {
-                    if (err) {
-                        return done(err);
-                    }
-
-                    Todo.findOne({text}).then((todo) => {
-                        id = todo._id;
-                        done();
-                    })
-                    .catch((e) => done(e));
-                });
+        Todo.insertMany(docs, done);
     });
 
     describe('when invoked with right params', () => {
         beforeEach(() => {
             getRequest = request(app)
-                .get('/todos/' + id)
+                .get('/todos/' + docs[0]._id.toHexString())
                 .send();
         });
 
@@ -196,7 +202,7 @@ describe('/todos/:id API GET suite', () => {
         it('should successfully fetch the right todo text', (done) => {
             getRequest
                 .expect((res) => {
-                    expect(res.body.todo.text).toBe(text);
+                    expect(res.body.todo.text).toBe(docs[0].text);
                 })
                 .end(done);
         });
