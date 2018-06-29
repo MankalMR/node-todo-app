@@ -218,3 +218,46 @@ describe('/todos/:id API GET suite', () => {
         });
     });
 });
+
+describe('/todos/:id API DELETE suite', () => {
+    let deleteRequest;
+
+    describe('when invoked with right params', () => {
+
+        beforeEach((done) => {
+            Todo.remove({}).then(() => done());
+        });
+
+        beforeEach((done) => {
+            Todo.insertMany(docs, done);
+        });
+
+        beforeEach(() => {
+            deleteRequest = request(app)
+                .delete('/todos/' + docs[0]._id.toHexString())
+                .send();
+        });
+
+        it('should return the status code 200', (done) => {
+            deleteRequest.expect(200, done);
+        });
+
+        it('should successfully delete the todo by id', (done) => {
+            deleteRequest
+                .expect((res) => {
+                    expect(res.body.todo).toContain(docs[0]);
+                })
+                .end(done);
+        });
+    });
+
+    describe('when invoked with incorrect id', () => {
+        it('should return status code 404', (done) => {
+            deleteRequest = request(app)
+                    .delete('/todos/123')
+                    .send()
+                    .end(done)
+                    .expect(404);
+        });
+    });
+});
