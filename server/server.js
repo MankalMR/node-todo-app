@@ -32,12 +32,11 @@ const prepareTodoDataBeforeDBUpdate = (data) => {
   return newData;
 };
 
-// const handleIDValidation = (id, res) => {
-//   if (!ObjectID.isValid(id)) {
-//     return res.status(404).send();
-//   }
-//   return true;
-// };
+const handleIDValidation = (id, res) => {
+  if (!ObjectID.isValid(id)) {
+    return res.status(404).send();
+  }
+};
 
 app.post('/todos', (req, res) => {
   const body = prepareTodoDataBeforeDBUpdate(req.body);
@@ -63,9 +62,7 @@ app.get('/todos', (req, res) => {
 app.get('/todos/:id', (req, res) => {
   const { id } = req.params;
 
-  if (!ObjectID.isValid(id)) {
-    return res.status(404).send();
-  }
+  handleIDValidation(id, res);
 
   Todo.findById(id).then(
     (todo) => {
@@ -83,9 +80,7 @@ app.get('/todos/:id', (req, res) => {
 app.delete('/todos/:id', (req, res) => {
   const { id } = req.params;
 
-  if (!ObjectID.isValid(id)) {
-    return res.status(404).send();
-  }
+  handleIDValidation(id, res);
 
   Todo.findByIdAndRemove(id).then(
     (todo) => {
@@ -103,9 +98,7 @@ app.delete('/todos/:id', (req, res) => {
 app.patch('/todos/:id', (req, res) => {
   const { id } = req.params;
 
-  if (!ObjectID.isValid(id)) {
-    return res.status(404).send();
-  }
+  handleIDValidation(id, res);
 
   const body = prepareTodoDataBeforeDBUpdate(req.body);
 
