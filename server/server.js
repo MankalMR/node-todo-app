@@ -7,6 +7,7 @@ const { ObjectID } = require('mongodb');
 
 const { User } = require('./model/user');
 const { Todo } = require('./model/todo');
+const { authenticate } = require('./middleware/authenticate');
 
 const app = express();
 const port = process.env.PORT;
@@ -119,6 +120,10 @@ app.post('/users', (req, res) => {
       res.header('x-auth', token).send(newUser);
     })
     .catch(errFn(res));
+});
+
+app.get('/users/me', authenticate, (req, res) => {
+  res.send(req.user);
 });
 
 app.listen(port, () => {
