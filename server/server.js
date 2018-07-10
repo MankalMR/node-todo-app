@@ -32,6 +32,12 @@ const prepareTodoDataBeforeDBUpdate = (data) => {
   return newData;
 };
 
+const prepareUserDataBeforeDBUpdate = (data) => {
+  const newData = _.pick(data, ['email', 'password']);
+
+  return newData;
+};
+
 const handleIDValidation = (id, res) => {
   if (!ObjectID.isValid(id)) {
     return res.status(404).send();
@@ -42,21 +48,17 @@ app.post('/todos', (req, res) => {
   const body = prepareTodoDataBeforeDBUpdate(req.body);
   const newTodo = new Todo(body);
 
-  newTodo.save().then(
-    (doc) => {
-      res.send(doc);
-    },
-    errFn(res)
-  );
+  newTodo.save().then((doc) => {
+    res.send(doc);
+  })
+    .catch(errFn(res));
 });
 
 app.get('/todos', (req, res) => {
-  Todo.find().then(
-    (todos) => {
-      res.send({ todos });
-    },
-    errFn(res)
-  );
+  Todo.find().then((todos) => {
+    res.send({ todos });
+  })
+    .catch(errFn(res));
 });
 
 app.get('/todos/:id', (req, res) => {
@@ -64,16 +66,13 @@ app.get('/todos/:id', (req, res) => {
 
   handleIDValidation(id, res);
 
-  Todo.findById(id).then(
-    (todo) => {
-      if (!todo) {
-        return res.status(404).send();
-      }
+  Todo.findById(id).then((todo) => {
+    if (!todo) {
+      return res.status(404).send();
+    }
 
-      res.send({ todo });
-    },
-    errFn(res)
-  )
+    res.send({ todo });
+  })
     .catch(errFn(res));
 });
 
@@ -82,16 +81,13 @@ app.delete('/todos/:id', (req, res) => {
 
   handleIDValidation(id, res);
 
-  Todo.findByIdAndRemove(id).then(
-    (todo) => {
-      if (!todo) {
-        return res.status(404).send();
-      }
+  Todo.findByIdAndRemove(id).then((todo) => {
+    if (!todo) {
+      return res.status(404).send();
+    }
 
-      res.send({ todo });
-    },
-    errFn(res)
-  )
+    res.send({ todo });
+  })
     .catch(errFn(res));
 });
 
@@ -102,28 +98,27 @@ app.patch('/todos/:id', (req, res) => {
 
   const body = prepareTodoDataBeforeDBUpdate(req.body);
 
-  Todo.findByIdAndUpdate(id, { $set: body }, { new: true }).then(
-    (todo) => {
-      if (!todo) {
-        return res.status(404).send();
-      }
+  Todo.findByIdAndUpdate(id, { $set: body }, { new: true }).then((todo) => {
+    if (!todo) {
+      return res.status(404).send();
+    }
 
-      res.send({ todo });
-    },
-    errFn(res)
-  )
+    res.send({ todo });
+  })
     .catch(errFn(res));
 });
 
 app.post('/users', (req, res) => {
-  const newUser = new User(req.body);
+  const body = prepareUserDataBeforeDBUpdate(req.body);
+  const newUser = new User(body);
 
-  newUser.save().then(
-    (doc) => {
-      res.send(doc);
-    },
-    errFn(res)
-  );
+  newUser.save().then(() => {
+    return newUser.generateAuthToken();
+  })
+    .then((token) => {
+      res.header('x-auth', token).send(newUser);
+    })
+    .catch(errFn(res));
 });
 
 app.listen(port, () => {
