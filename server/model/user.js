@@ -1,6 +1,7 @@
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 
 const { mongoose } = require('../db/mongoose');
 
@@ -67,6 +68,21 @@ UserSchema.statics.fetchByToken = function fetchByToken(token) {
     'tokens.access': decodedUser.access
   });
 };
+
+UserSchema.pre('save', function preSave(next) {
+  const user = this;
+
+  if (user.isModified('password')) {
+    bcrypt.genSalt(10, (genSaltErr, salt) => {
+      bcrypt.hash(user.password, salt, (hashErr, hashedPwd) => {
+        user.password = hashedPwd;
+        next();
+      });
+    });
+  } else {
+    next();
+  }
+});
 
 // Google for 'mongoose schema' to learn more about configuring model options
 // User Model
