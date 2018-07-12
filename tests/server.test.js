@@ -405,3 +405,48 @@ describe('/users API POST suite', () => {
     });
   });
 });
+
+describe('/users/login API POST suite', () => {
+  let usersMeApi;
+
+  describe('login when valid credentials are passed', () => {
+    beforeEach(() => {
+      const { email, password } = users[0];
+      usersMeApi = request(app).post('/users/login')
+        .send({ email, password });
+    });
+
+    it('should return 200', (done) => {
+      usersMeApi.expect(200)
+        .end(done);
+    });
+
+    it('should have return with x-auth header', (done) => {
+      usersMeApi
+        .expect((res) => {
+          expect(res.headers['x-auth']).toExist();
+        })
+        .end(done);
+    });
+  });
+
+  describe('login fails when invalid credentials are passed', () => {
+    beforeEach(() => {
+      usersMeApi = request(app).post('/users/login')
+        .send({ email: 'invalid_email', password: 'some_password' });
+    });
+
+    it('should return status 400', (done) => {
+      usersMeApi
+        .expect(400, done);
+    });
+
+    it('should return error body', (done) => {
+      usersMeApi
+        .expect((res) => {
+          expect(res.body).toContainKey('error');
+        })
+        .end(done);
+    });
+  });
+});
