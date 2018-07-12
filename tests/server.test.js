@@ -1,9 +1,11 @@
 const expect = require('expect');
 const request = require('supertest');
 const { ObjectID } = require('mongodb');
+const jwt = require('jsonwebtoken');
 
 const { app } = require('../server/server');
 const { Todo } = require('../server/model/todo');
+const { User } = require('../server/model/user');
 
 const text = 'Test todo app';
 const docs = [
@@ -16,6 +18,46 @@ const docs = [
     text: 'my todo 2'
   }
 ];
+
+const userOneId = new ObjectID();
+const userTwoId = new ObjectID();
+const users = [
+  {
+    _id: userOneId,
+    email: 'test1@test.com',
+    password: 'password1',
+    tokens: [{
+      access: 'auth',
+      token: jwt.sign({ _id: userOneId.toHexString(), access: 'auth' }, 'hash_secret').toString()
+    }]
+  },
+  {
+    _id: userTwoId,
+    email: 'test2@test.com',
+    password: 'password2',
+    tokens: [{
+      access: 'auth',
+      token: jwt.sign({ _id: userTwoId.toHexString(), access: 'auth' }, 'hash_secret').toString()
+    }]
+  },
+  {
+    email: 'test3@test.com',
+    password: 'password3'
+  }
+];
+const populateUsers = (done) => {
+  User.remove({}).then(() => {
+    const userOne = new User(users[0]).save();
+    const userTwo = new User(users[1]).save();
+
+    return Promise.all([userOne, userTwo]);
+  })
+    .then(() => {
+      done();
+    });
+};
+
+beforeEach(populateUsers);
 
 describe('/todos API POST suite', () => {
   let postRequest;
@@ -254,6 +296,112 @@ describe('/todos/:id API DELETE suite', () => {
         .send()
         .end(done)
         .expect(404);
+    });
+  });
+});
+
+describe('/users/me API GET suite', () => {
+  let usersMeApi;
+
+  describe('if user authenticated', () => {
+    beforeEach(() => {
+      usersMeApi = request(app).get('/users/me')
+        .set('x-auth', users[0].tokens[0].token)
+        .send();
+    });
+
+    it('should return 200', (done) => {
+      usersMeApi.expect(200)
+        .end(done);
+    });
+
+    it('should return correct _id', (done) => {
+      usersMeApi
+        .expect((res) => {
+          expect(res.body._id).toBe(userOneId.toHexString());
+        })
+        .end(done);
+    });
+
+    it('should return correct email', (done) => {
+      usersMeApi
+        .expect((res) => {
+          expect(res.body.email).toBe(users[0].email);
+        })
+        .end(done);
+    });
+  });
+
+  describe('if user NOT authenticated', () => {
+    beforeEach(() => {
+      usersMeApi = request(app).get('/users/me')
+        .send();
+    });
+
+    it('should return status 401', (done) => {
+      usersMeApi
+        .expect(401, done);
+    });
+
+    it('should return error body', (done) => {
+      usersMeApi
+        .expect((res) => {
+          expect(res.body).toContain({ name: 'JsonWebTokenError' });
+        })
+        .end(done);
+    });
+  });
+});
+
+
+describe('/users API POST suite', () => {
+  let usersMeApi;
+
+  describe('if valid data is passed', () => {
+    beforeEach(() => {
+      usersMeApi = request(app).post('/users')
+        .send(users[2]);
+    });
+
+    it('should return 200', (done) => {
+      usersMeApi.expect(200)
+        .end(done);
+    });
+
+    it('should return the _id', (done) => {
+      usersMeApi
+        .expect((res) => {
+          expect(res.body._id).toExist();
+        })
+        .end(done);
+    });
+
+    it('should return correct email', (done) => {
+      usersMeApi
+        .expect((res) => {
+          expect(res.body.email).toBe(users[2].email);
+        })
+        .end(done);
+    });
+  });
+
+  describe('if invalid data is passed', () => {
+    beforeEach(() => {
+      usersMeApi = request(app).post('/users')
+        .send({ email: 'invalid_email', password: 'some_password' });
+    });
+
+    it('should return status 400', (done) => {
+      usersMeApi
+        .expect(400, done);
+    });
+
+    it('should return error body', (done) => {
+      usersMeApi
+        .expect((res) => {
+          expect(res.body).toContain({ _message: 'User validation failed' });
+        })
+        .end(done);
     });
   });
 });
