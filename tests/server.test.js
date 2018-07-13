@@ -450,3 +450,23 @@ describe('/users/login API POST suite', () => {
     });
   });
 });
+
+describe('/users/me/token API DELETE suite', () => {
+  describe('when token passed', () => {
+    it('should return 200', (done) => {
+      request(app).delete('/users/me/token')
+        .set('x-auth', users[1].tokens[0].token)
+        .send()
+        .expect(200)
+        .end(done);
+    });
+
+    it('when token does NOT exist, should return 401', (done) => {
+      request(app).delete('/users/me/token')
+        .set('x-auth', 'abc')
+        .send()
+        .expect(401)
+        .end(done);
+    });
+  });
+});
