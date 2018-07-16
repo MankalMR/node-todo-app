@@ -7,18 +7,6 @@ const { app } = require('../server/server');
 const { Todo } = require('../server/model/todo');
 const { User } = require('../server/model/user');
 
-const text = 'Test todo app';
-const docs = [
-  {
-    _id: new ObjectID(),
-    text: 'my todo 1'
-  },
-  {
-    _id: new ObjectID(),
-    text: 'my todo 2'
-  }
-];
-
 const userOneId = new ObjectID();
 const userTwoId = new ObjectID();
 const users = [
@@ -45,6 +33,20 @@ const users = [
     password: 'password3'
   }
 ];
+
+const docs = [
+  {
+    _id: new ObjectID(),
+    text: 'my todo 1',
+    _user: userOneId
+  },
+  {
+    _id: new ObjectID(),
+    text: 'my todo 2',
+    _user: userTwoId
+  }
+];
+
 const populateUsers = (done) => {
   User.remove({}).then(() => {
     const userOne = new User(users[0]).save();
@@ -70,7 +72,8 @@ describe('/todos API POST suite', () => {
     beforeEach(() => {
       postRequest = request(app)
         .post('/todos')
-        .send({ text });
+        .set('x-auth', users[0].tokens[0].token)
+        .send(docs[0]);
     });
 
     it('should return the status code 200', (done) => {
@@ -80,7 +83,7 @@ describe('/todos API POST suite', () => {
     it('should successfully add the todo', (done) => {
       postRequest
         .expect((res) => {
-          expect(res.body).toInclude({ text });
+          expect(res.body).toInclude({ text: docs[0].text });
         })
         .end(done);
     });
@@ -108,7 +111,7 @@ describe('/todos API POST suite', () => {
           }
 
           Todo.find().then((todos) => {
-            expect(todos[0].text).toBe(text);
+            expect(todos[0].text).toBe(docs[0].text);
             done();
           })
             .catch((e) => { done(e); });
@@ -120,15 +123,15 @@ describe('/todos API POST suite', () => {
     it('should return the status code 404', (done) => {
       postRequest = request(app)
         .post('/todos_incorrect')
-        .send({ text });
+        .send(docs[0]);
       postRequest.expect(404, done);
     });
 
-    it('should return the status code 400', (done) => {
+    it('when ivoked without x-auth header, should return the status code 401', (done) => {
       postRequest = request(app)
         .post('/todos')
         .send({});
-      postRequest.expect(400, done);
+      postRequest.expect(401, done);
     });
 
     it('should NOT create a todo in the database', (done) => {
@@ -152,8 +155,6 @@ describe('/todos API POST suite', () => {
 
 describe('/todos API GET suite', () => {
   let getRequest;
-  let todoTotal = 2;
-
   beforeEach((done) => {
     Todo.remove({}).then(() => { done(); });
   });
@@ -162,17 +163,11 @@ describe('/todos API GET suite', () => {
     Todo.insertMany(docs, done);
   });
 
-  beforeEach((done) => {
-    Todo.count({}, (err, count) => {
-      todoTotal = count;
-      done();
-    });
-  });
-
   describe('when invoked with right params', () => {
     beforeEach(() => {
       getRequest = request(app)
         .get('/todos')
+        .set('x-auth', users[0].tokens[0].token)
         .send();
     });
 
@@ -188,22 +183,22 @@ describe('/todos API GET suite', () => {
         .end(done);
     });
 
-    it(`should fetch ${todoTotal} todo`, (done) => {
+    it('should fetch 1 todo', (done) => {
       getRequest
         .expect((res) => {
-          expect(res.body.todos.length).toBe(todoTotal);
+          expect(res.body.todos.length).toBe(1);
         })
         .end(done);
     });
   });
 
-  describe('when invoked with incorrect params or incorrect API', () => {
-    it('should return the status code 404', (done) => {
+  describe('when invoked without x-auth header', () => {
+    it('should return the status code 401', (done) => {
       getRequest = request(app)
-        .get('/todos_incorrect')
+        .get('/todos')
         .send();
 
-      getRequest.expect(404, done);
+      getRequest.expect(401, done);
     });
   });
 });

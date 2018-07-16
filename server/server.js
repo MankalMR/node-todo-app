@@ -20,8 +20,10 @@ const errFn = (res) => {
   };
 };
 
-const prepareTodoDataBeforeDBUpdate = (data) => {
-  const newData = _.pick(data, ['text', 'completed']);
+const prepareTodoDataBeforeDBUpdate = (req) => {
+  const newData = _.pick(req.body, ['text', 'completed']);
+
+  newData._user = req.user._id;
 
   if (_.isBoolean(newData.completed) && newData.completed) {
     newData.completedAt = (new Date()).toDateString();
@@ -29,7 +31,6 @@ const prepareTodoDataBeforeDBUpdate = (data) => {
     newData.completed = false;
     newData.completedAt = null;
   }
-
   return newData;
 };
 
@@ -45,8 +46,8 @@ const handleIDValidation = (id, res) => {
   }
 };
 
-app.post('/todos', (req, res) => {
-  const body = prepareTodoDataBeforeDBUpdate(req.body);
+app.post('/todos', authenticate, (req, res) => {
+  const body = prepareTodoDataBeforeDBUpdate(req);
   const newTodo = new Todo(body);
 
   newTodo.save().then((doc) => {
@@ -55,8 +56,8 @@ app.post('/todos', (req, res) => {
     .catch(errFn(res));
 });
 
-app.get('/todos', (req, res) => {
-  Todo.find().then((todos) => {
+app.get('/todos', authenticate, (req, res) => {
+  Todo.find({ _user: req.user._id }).then((todos) => {
     res.send({ todos });
   })
     .catch(errFn(res));
@@ -97,7 +98,7 @@ app.patch('/todos/:id', (req, res) => {
 
   handleIDValidation(id, res);
 
-  const body = prepareTodoDataBeforeDBUpdate(req.body);
+  const body = prepareTodoDataBeforeDBUpdate(req);
 
   Todo.findByIdAndUpdate(id, { $set: body }, { new: true }).then((todo) => {
     if (!todo) {
