@@ -63,12 +63,12 @@ app.get('/todos', authenticate, (req, res) => {
     .catch(errFn(res));
 });
 
-app.get('/todos/:id', (req, res) => {
+app.get('/todos/:id', authenticate, (req, res) => {
   const { id } = req.params;
 
   handleIDValidation(id, res);
 
-  Todo.findById(id).then((todo) => {
+  Todo.findOne({ _id: id, _user: req.user._id }).then((todo) => {
     if (!todo) {
       return res.status(404).send();
     }
@@ -78,12 +78,12 @@ app.get('/todos/:id', (req, res) => {
     .catch(errFn(res));
 });
 
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', authenticate, (req, res) => {
   const { id } = req.params;
 
   handleIDValidation(id, res);
 
-  Todo.findByIdAndRemove(id).then((todo) => {
+  Todo.findOneAndRemove({ _id: id, _user: req.user._id }).then((todo) => {
     if (!todo) {
       return res.status(404).send();
     }
@@ -93,14 +93,14 @@ app.delete('/todos/:id', (req, res) => {
     .catch(errFn(res));
 });
 
-app.patch('/todos/:id', (req, res) => {
+app.patch('/todos/:id', authenticate, (req, res) => {
   const { id } = req.params;
 
   handleIDValidation(id, res);
 
   const body = prepareTodoDataBeforeDBUpdate(req);
 
-  Todo.findByIdAndUpdate(id, { $set: body }, { new: true }).then((todo) => {
+  Todo.findOneAndUpdate({ _id: id, _user: req.user._id }, { $set: body }, { new: true }).then((todo) => {
     if (!todo) {
       return res.status(404).send();
     }

@@ -218,6 +218,7 @@ describe('/todos/:id API GET suite', () => {
     beforeEach(() => {
       getRequest = request(app)
         .get(`/todos/${docs[0]._id.toHexString()}`)
+        .set('x-auth', users[0].tokens[0].token)
         .send();
     });
 
@@ -246,6 +247,7 @@ describe('/todos/:id API GET suite', () => {
     it('should return status code 404', (done) => {
       getRequest = request(app)
         .get('/todos/123')
+        .set('x-auth', users[0].tokens[0].token)
         .send()
         .end(done)
         .expect(404);
@@ -268,6 +270,7 @@ describe('/todos/:id API DELETE suite', () => {
     beforeEach(() => {
       deleteRequest = request(app)
         .delete(`/todos/${docs[0]._id.toHexString()}`)
+        .set('x-auth', users[0].tokens[0].token)
         .send();
     });
 
@@ -288,6 +291,7 @@ describe('/todos/:id API DELETE suite', () => {
     it('should return status code 404', (done) => {
       deleteRequest = request(app)
         .delete('/todos/123')
+        .set('x-auth', users[0].tokens[0].token)
         .send()
         .end(done)
         .expect(404);
